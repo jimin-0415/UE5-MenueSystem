@@ -37,6 +37,10 @@ class AMenuSystemCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
 
+private:
+	/// OnlineInterface 정의
+	using IOnlineSessionPtr = TSharedPtr< class IOnlineSession, ESPMode::ThreadSafe >;
+
 public:
 	AMenuSystemCharacter();
 	
@@ -62,5 +66,10 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+private:
+	// Pointer to the online session interface 
+	IOnlineSessionPtr m_onlineSessionInterface;
+	
 };
 

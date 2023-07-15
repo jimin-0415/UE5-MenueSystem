@@ -9,7 +9,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-
+#include "OnlineSubsystem.h"
+#include "Interfaces/OnlineSessionInterface.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AMenuSystemCharacter
@@ -49,6 +50,25 @@ AMenuSystemCharacter::AMenuSystemCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	// 인터페이스로부터 OnlineSubSystem 정보를 가져온다.
+	// 온라인 서브 시스템은 기본 Unreal Editor로 실행시에는 연결을 확인할 수 없다. 
+	// Package 파일로 뽑아서 접속을 하면, 연결을 확인할 수 있다.
+	IOnlineSubsystem* onlineSubsystem = IOnlineSubsystem::Get();
+	if ( onlineSubsystem )
+	{
+		m_onlineSessionInterface = onlineSubsystem->GetSessionInterface();
+
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage( 
+				-1,
+				15.f, 
+				FColor::Blue, 
+				FString::Printf( TEXT("Found subsystem %s"), *onlineSubsystem->GetSubsystemName().ToString() )
+			);
+		}
+	}
 }
 
 void AMenuSystemCharacter::BeginPlay()
