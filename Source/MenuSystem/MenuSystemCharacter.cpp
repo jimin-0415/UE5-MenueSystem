@@ -18,8 +18,11 @@
 
 AMenuSystemCharacter::AMenuSystemCharacter()
 : 
+// Binding Callback
 m_CreateSessionCompleteDelegate( 
-	FOnCreateSessionCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnCreateSessionComplete ) )
+	FOnCreateSessionCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnCreateSessionComplete ) ),
+m_FindSessionsCompleteDelegate( 
+	FOnFindSessionsCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnFindSessionsComplete ) )
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -61,7 +64,7 @@ m_CreateSessionCompleteDelegate(
 	IOnlineSubsystem* onlineSubsystem = IOnlineSubsystem::Get();
 	if ( onlineSubsystem )
 	{
-		m_onlineSubsystemSessionInterface = onlineSubsystem->GetSessionInterface();
+		m_onlineSessionInterface = onlineSubsystem->GetSessionInterface();
 
 		if ( GEngine )
 		{
@@ -155,33 +158,59 @@ void AMenuSystemCharacter::CreateGameSession()
 {
 	// Called When Press 1 Key
 	// Interface 유효성 검증
-	if ( !m_onlineSubsystemSessionInterface.IsValid() )
+	if ( !m_onlineSessionInterface.IsValid() )
 		return;
 	
 	// 기존 세션 존재 여부 확인
-	auto existingSession = m_onlineSubsystemSessionInterface->GetNamedSession( NAME_GameSession );
+	auto existingSession = m_onlineSessionInterface->GetNamedSession( NAME_GameSession );
 	if ( nullptr != existingSession )
 	{
-		m_onlineSubsystemSessionInterface->DestroySession( NAME_GameSession );
+		m_onlineSessionInterface->DestroySession( NAME_GameSession );
 	}
 
 	// 서브시스템 세션에 '델리게이트 세션 생성 완료 델리게이터' 등록
-	m_onlineSubsystemSessionInterface->AddOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegate );
+	m_onlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegate );
 
 	// 세션 설정을 시작합니다. 
 	TSharedPtr<FOnlineSessionSettings> sessionSettings = MakeShareable( new FOnlineSessionSettings() );
-	sessionSettings->bIsLANMatch = false;	
-	sessionSettings->NumPublicConnections = 4;	//몇명의 Player랑 할거냐
-	sessionSettings->bAllowJoinInProgress = true; //실행 도중 다른 유저의 난입이 가능하냐
-	sessionSettings->bAllowJoinViaPresence = true; 
-	sessionSettings->bShouldAdvertise = true;
-	sessionSettings->bUsesPresence = true;
+	sessionSettings->bIsLANMatch			= false;	
+	sessionSettings->NumPublicConnections	= 4;	//몇명의 Player랑 할거냐
+	sessionSettings->bAllowJoinInProgress	= true; //실행 도중 다른 유저의 난입이 가능하냐
+	sessionSettings->bAllowJoinViaPresence	= true; 
+	sessionSettings->bShouldAdvertise		= true;
+	sessionSettings->bUsesPresence			= true;
+	sessionSettings->bUseLobbiesIfAvailable = true;
 
 	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
 	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 
 	// 세션 생성
-	m_onlineSubsystemSessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *sessionSettings );
+	m_onlineSessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *sessionSettings );
+}
+
+//////////////////////////////////////////////////////////////////////////
+// 세션 생성이 완료 되었습니다.
+//////////////////////////////////////////////////////////////////////////
+void AMenuSystemCharacter::JoinGameSession()
+{
+	//Find Game Session.
+	if ( !m_onlineSessionInterface.IsValid() )
+		return;
+
+	// 서브시스템 세션에 '델리게이트 세션 찾기 완료 델리게이터' 등록
+	m_onlineSessionInterface->AddOnFindSessionsCompleteDelegate_Handle( m_FindSessionsCompleteDelegate );
+
+	m_sessionSearch = MakeShareable( new FOnlineSessionSearch() );
+	m_sessionSearch->MaxSearchResults				= 10000;	// 80, 480 은 Steam에서 제공해주는 Session 넘버
+	m_sessionSearch->bIsLanQuery					= false;
+
+	m_sessionSearch->QuerySettings.Set( SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals ); // 세션 검색 쿼리 세팅 
+
+	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
+	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	
+	// 세션 찾기
+	m_onlineSessionInterface->FindSessions( *localPlayer->GetPreferredUniqueNetId(), m_sessionSearch.ToSharedRef() );
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -210,6 +239,35 @@ void AMenuSystemCharacter::OnCreateSessionComplete(FName SessionName, bool bWasS
 				15.f,
 				FColor::Red,
 				FString( TEXT( "Failed to Create Session!" ) )
+			);
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// 세션 생성이 찾기가 완료 되었습니다.
+//////////////////////////////////////////////////////////////////////////
+void AMenuSystemCharacter::OnFindSessionsComplete( bool bWasSuccessful )
+{
+	if ( bWasSuccessful )
+	{
+
+	}
+
+	// 검색한 Session의 결과 정보를 가져온다.
+	for ( auto& result : m_sessionSearch->SearchResults )
+	{
+		//(FString)
+		auto id = result.GetSessionIdStr();
+		auto user = result.Session.OwningUserName;
+
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Cyan,
+				FString::Printf( TEXT( "Id: %s, User: %s" ), *id, *user )
 			);
 		}
 	}

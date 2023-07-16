@@ -77,16 +77,30 @@ public:
 
 private:
 	// 온라인 서브시스템 세션 인터페이스 
-	IOnlineSessionPtr m_onlineSubsystemSessionInterface;
+	IOnlineSessionPtr m_onlineSessionInterface;
 
-	/// 세션 완료 대리자 클래스
+	/// 세션 생성 완료 대리자 클래스
 	FOnCreateSessionCompleteDelegate m_CreateSessionCompleteDelegate;
+
+	/// 세션 찾기 완료 대리자 클래스
+	FOnFindSessionsCompleteDelegate m_FindSessionsCompleteDelegate;
+
+	/// 세션 찾기 요청 클래스
+	TSharedPtr< FOnlineSessionSearch > m_sessionSearch;
 
 protected:
 	/// 게임 세션을 생성합니다.
 	UFUNCTION(BlueprintCallable)
 	void CreateGameSession();
 
+	/// 게임에 
+	UFUNCTION( BlueprintCallable )
+	void JoinGameSession();
+
+protected:
 	/// 세션 생성이 완료 되었습니다.
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
+
+	/// 세션 생성이 찾기가 완료 되었습니다.
+	void OnFindSessionsComplete( bool bWasSuccessful );
 };
