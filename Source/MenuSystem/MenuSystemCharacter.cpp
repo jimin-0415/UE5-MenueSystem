@@ -10,12 +10,16 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "OnlineSubsystem.h"
-#include "Interfaces/OnlineSessionInterface.h"
+#include "OnlineSessionSettings.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // AMenuSystemCharacter
 
 AMenuSystemCharacter::AMenuSystemCharacter()
+: 
+m_CreateSessionCompleteDelegate( 
+	FOnCreateSessionCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnCreateSessionComplete ) )
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -57,7 +61,7 @@ AMenuSystemCharacter::AMenuSystemCharacter()
 	IOnlineSubsystem* onlineSubsystem = IOnlineSubsystem::Get();
 	if ( onlineSubsystem )
 	{
-		m_onlineSessionInterface = onlineSubsystem->GetSessionInterface();
+		m_onlineSubsystemSessionInterface = onlineSubsystem->GetSessionInterface();
 
 		if ( GEngine )
 		{
@@ -141,6 +145,73 @@ void AMenuSystemCharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// 게임 세션을 생성합니다.
+//////////////////////////////////////////////////////////////////////////
+void AMenuSystemCharacter::CreateGameSession()
+{
+	// Called When Press 1 Key
+	// Interface 유효성 검증
+	if ( !m_onlineSubsystemSessionInterface.IsValid() )
+		return;
+	
+	// 기존 세션 존재 여부 확인
+	auto existingSession = m_onlineSubsystemSessionInterface->GetNamedSession( NAME_GameSession );
+	if ( nullptr != existingSession )
+	{
+		m_onlineSubsystemSessionInterface->DestroySession( NAME_GameSession );
+	}
+
+	// 서브시스템 세션에 '델리게이트 세션 생성 완료 델리게이터' 등록
+	m_onlineSubsystemSessionInterface->AddOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegate );
+
+	// 세션 설정을 시작합니다. 
+	TSharedPtr<FOnlineSessionSettings> sessionSettings = MakeShareable( new FOnlineSessionSettings() );
+	sessionSettings->bIsLANMatch = false;	
+	sessionSettings->NumPublicConnections = 4;	//몇명의 Player랑 할거냐
+	sessionSettings->bAllowJoinInProgress = true; //실행 도중 다른 유저의 난입이 가능하냐
+	sessionSettings->bAllowJoinViaPresence = true; 
+	sessionSettings->bShouldAdvertise = true;
+	sessionSettings->bUsesPresence = true;
+
+	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
+	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+
+	// 세션 생성
+	m_onlineSubsystemSessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *sessionSettings );
+}
+
+//////////////////////////////////////////////////////////////////////////
+// 세션 생성이 완료 되었습니다.
+//////////////////////////////////////////////////////////////////////////
+void AMenuSystemCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	if ( bWasSuccessful )
+	{
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Blue,
+				FString::Printf( TEXT( "Surccess to Create Session : %s" ), *SessionName.ToString() )
+			);
+		}
+	}
+	else
+	{
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Red,
+				FString( TEXT( "Failed to Create Session!" ) )
+			);
+		}
 	}
 }
 
