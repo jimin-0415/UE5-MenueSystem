@@ -22,7 +22,9 @@ AMenuSystemCharacter::AMenuSystemCharacter()
 m_CreateSessionCompleteDelegate( 
 	FOnCreateSessionCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnCreateSessionComplete ) ),
 m_FindSessionsCompleteDelegate( 
-	FOnFindSessionsCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnFindSessionsComplete ) )
+	FOnFindSessionsCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnFindSessionsComplete ) ),
+m_joinSessionCompleteDelegate(
+	FOnJoinSessionCompleteDelegate::CreateUObject( this, &AMenuSystemCharacter::OnJoinSessionComplete ) )
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -180,6 +182,7 @@ void AMenuSystemCharacter::CreateGameSession()
 	sessionSettings->bShouldAdvertise		= true;
 	sessionSettings->bUsesPresence			= true;
 	sessionSettings->bUseLobbiesIfAvailable = true;
+	sessionSettings->Set( FName( "MatchType" ), FString( "FreeForAll" ), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing );
 
 	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
 	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
@@ -216,7 +219,7 @@ void AMenuSystemCharacter::JoinGameSession()
 //////////////////////////////////////////////////////////////////////////
 // 세션 생성이 완료 되었습니다.
 //////////////////////////////////////////////////////////////////////////
-void AMenuSystemCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+void AMenuSystemCharacter::OnCreateSessionComplete(FName sessionName, bool bWasSuccessful)
 {
 	if ( bWasSuccessful )
 	{
@@ -226,8 +229,16 @@ void AMenuSystemCharacter::OnCreateSessionComplete(FName SessionName, bool bWasS
 				-1,
 				15.f,
 				FColor::Blue,
-				FString::Printf( TEXT( "Surccess to Create Session : %s" ), *SessionName.ToString() )
+				FString::Printf( TEXT( "Surccess to Create Session : %s" ), *sessionName.ToString() )
 			);
+		}
+
+		UWorld* world = GetWorld();
+		if ( world )
+		{
+			// ServerTravel 를 호출해서 로비 레벨로 이동하고 listen 서버 오픈
+			FString levelPath = FString("/Game/ThirdPerson/Maps/Lobby?listen");
+			world->ServerTravel( levelPath );
 		}
 	}
 	else
@@ -249,10 +260,8 @@ void AMenuSystemCharacter::OnCreateSessionComplete(FName SessionName, bool bWasS
 //////////////////////////////////////////////////////////////////////////
 void AMenuSystemCharacter::OnFindSessionsComplete( bool bWasSuccessful )
 {
-	if ( bWasSuccessful )
-	{
-
-	}
+	if ( !m_onlineSessionInterface.IsValid() )
+		return;
 
 	// 검색한 Session의 결과 정보를 가져온다.
 	for ( auto& result : m_sessionSearch->SearchResults )
@@ -260,6 +269,9 @@ void AMenuSystemCharacter::OnFindSessionsComplete( bool bWasSuccessful )
 		//(FString)
 		auto id = result.GetSessionIdStr();
 		auto user = result.Session.OwningUserName;
+		FString matchType;
+
+		result.Session.SessionSettings.Get( FName( "MatchType" ), matchType );
 
 		if ( GEngine )
 		{
@@ -270,9 +282,53 @@ void AMenuSystemCharacter::OnFindSessionsComplete( bool bWasSuccessful )
 				FString::Printf( TEXT( "Id: %s, User: %s" ), *id, *user )
 			);
 		}
+
+		if ( matchType == FString( "FreeForAll" ) )
+		{
+			if ( GEngine )
+			{
+				GEngine->AddOnScreenDebugMessage(
+					-1,
+					15.f,
+					FColor::Cyan,
+					FString::Printf( TEXT( "Joining Match Type: %s" ), *matchType )
+				);
+			}
+			
+			// Join 완료시 알려준다.
+			m_onlineSessionInterface->AddOnJoinSessionCompleteDelegate_Handle( m_joinSessionCompleteDelegate );
+			
+			const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+			m_onlineSessionInterface->JoinSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, result );
+		}
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////
+// 세션 조인이 완료 되었습니다.
+//////////////////////////////////////////////////////////////////////////
+void AMenuSystemCharacter::OnJoinSessionComplete( FName sessionName, EOnJoinSessionCompleteResult::Type result )
+{
+	if ( !m_onlineSessionInterface.IsValid() )
+		return;
+	
+	FString address;
+	if ( m_onlineSessionInterface->GetResolvedConnectString( NAME_GameSession, address ) )
+	{
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Yellow,
+				FString::Printf( TEXT( "Connect String: %s" ), *address )
+			);
+		}
 
-
-
+		APlayerController* playerController = GetGameInstance()->GetFirstLocalPlayerController();
+		if ( playerController )
+		{
+			playerController->ClientTravel( address, ETravelType::TRAVEL_Absolute );
+		}
+	}
+}

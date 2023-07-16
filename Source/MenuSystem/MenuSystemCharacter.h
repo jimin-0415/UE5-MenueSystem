@@ -88,9 +88,12 @@ private:
 	/// 세션 찾기 요청 클래스
 	TSharedPtr< FOnlineSessionSearch > m_sessionSearch;
 
+	/// 세션 조인 완료 대리자 클래스
+	FOnJoinSessionCompleteDelegate m_joinSessionCompleteDelegate;
+
 protected:
 	/// 게임 세션을 생성합니다.
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION( BlueprintCallable )
 	void CreateGameSession();
 
 	/// 게임에 
@@ -99,8 +102,11 @@ protected:
 
 protected:
 	/// 세션 생성이 완료 되었습니다.
-	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnCreateSessionComplete( FName sessionName, bool bWasSuccessful );
 
 	/// 세션 생성이 찾기가 완료 되었습니다.
 	void OnFindSessionsComplete( bool bWasSuccessful );
+
+	/// 세션 조인이 완료 되었습니다.
+	void OnJoinSessionComplete( FName sessionName, EOnJoinSessionCompleteResult::Type result );
 };
