@@ -7,6 +7,13 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "MultiPlayerSessionsSubsystem.generated.h"
 
+
+////////////////////////////////////////////////////////////////////////////
+/// Delcaring our own custom delegates for the Menu class to bind callbacks to
+////////////////////////////////////////////////////////////////////////////
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FMultiplayerOnCreateSessionComplete, bool, bWasSuccessful );
+
+
 /**
  * 
  */
@@ -35,6 +42,11 @@ public:
 
 	/// 세션을 시작합니다.
 	void StartSession();
+
+/// Own custom delegates for the Menu class to bind callbacks to
+public:
+	FMultiplayerOnCreateSessionComplete MultiplayerOnCreateSessionComplete;
+
 
 /// Internal callbacks for the delegates we'll add to the OnlineSession Interface delegate list.
 /// This don't need to be called outside this class

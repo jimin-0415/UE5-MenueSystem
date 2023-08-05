@@ -63,7 +63,11 @@ void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, F
 	// 세션 생성
 	if ( !m_SessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *m_lastSessionSettings ) )
 	{
+		// 세션 생성이 실패할 경우.
 		m_SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegateHandle );
+
+		// Broadcast our own custom delegate
+		MultiplayerOnCreateSessionComplete.Broadcast( false );
 	}
 }
 
@@ -100,6 +104,13 @@ void UMultiPlayerSessionsSubsystem::StartSession()
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::OnCreateSessionComplete( FName sessionName, bool bWasSuccessful )
 {
+	if ( m_SessionInterface )
+	{
+		m_SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegateHandle );
+	}
+
+	// Broadcast our own custom delegate
+	MultiplayerOnCreateSessionComplete.Broadcast( bWasSuccessful );
 }
 
 ////////////////////////////////////////////////////////////////////////////

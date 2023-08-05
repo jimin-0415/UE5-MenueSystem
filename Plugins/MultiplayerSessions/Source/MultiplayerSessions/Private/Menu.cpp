@@ -40,6 +40,12 @@ void UMenu::MenuSetup( int32 numberOfPublicConnections, FString typeOfMatch )
 		m_MultiPlayerSessionSubsystem = gameInstance->GetSubsystem< UMultiPlayerSessionsSubsystem >();
 	}
 
+	if ( m_MultiPlayerSessionSubsystem )
+	{
+		/// DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam 에 바인딩 되는 함수는 UFUNC() 매크로 선언이 필요하다.
+		m_MultiPlayerSessionSubsystem->MultiplayerOnCreateSessionComplete.AddDynamic( this, &ThisClass::OnCreateSession );
+	}
+
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -72,28 +78,50 @@ void UMenu::NativeDestruct()
 }
 
 ////////////////////////////////////////////////////////////////////////////
-/// Host 버튼을 클릭합니다.
+/// 세션이 생성되었을 때 처리합니다.
 ////////////////////////////////////////////////////////////////////////////
-void UMenu::HostButtonClicked()
+void UMenu::OnCreateSession( bool bWasSuccessful )
 {
-	if ( GEngine )
+	if ( bWasSuccessful )
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString( TEXT( "Host Button Clicked" ) ) );
-	}
-
-	if ( m_MultiPlayerSessionSubsystem )
-	{
-		/// TODO. 일단 들어오는지 검사하기 위해서 임시로 적용.
-		m_MultiPlayerSessionSubsystem->CreateSession( m_NumPublicConnections, m_MatchType );
+		// 정상적으로 Session이 만들어졌다고 판단되면 World 이동
 		UWorld* world = GetWorld();
 		if ( world )
 		{
 			world->ServerTravel( "/Game/ThirdPerson/Maps/Lobby?listen" );
 		}
+
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Yellow,
+				FString( TEXT( "Session Create Successfully" ) ) );
+		}
+	}
+	else
+	{
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Red,
+				FString( TEXT( "Failed to Create Session" ) ) );
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// Host 버튼을 클릭합니다.
+////////////////////////////////////////////////////////////////////////////
+void UMenu::HostButtonClicked()
+{
+	if ( m_MultiPlayerSessionSubsystem )
+	{
+		/// TODO. 일단 들어오는지 검사하기 위해서 임시로 적용.
+		m_MultiPlayerSessionSubsystem->CreateSession( m_NumPublicConnections, m_MatchType );
 	}
 }
 

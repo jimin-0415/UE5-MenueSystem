@@ -10,6 +10,7 @@
 class UButton;
 class UMultiPlayerSessionsSubsystem;
 
+
 /**
  * 
  */
@@ -17,10 +18,36 @@ UCLASS()
 class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 {
 	GENERATED_BODY()
+
+/// Subsystem
+private:
+	/// The subsystem designed to handl all online session functionality
+	UMultiPlayerSessionsSubsystem* m_MultiPlayerSessionSubsystem;
+
+	/// 연결가능한 Connection 수
+	int32 m_NumPublicConnections{ 4 };
+
+	/// MatchType 정의
+	FString m_MatchType{ TEXT( "FreeForAll" ) };
+
+/// UI Object
+private:
+	/// 바인딩되는 버튼의 이름은 블루프린트에 정의된 이름과 동일해야 한다.
+	// UPROPERTY( meta = ( BindWidget ) ) 
+
+	/// Host 버튼
+	UPROPERTY( meta = ( BindWidget ) )
+		UButton* m_HostButton;
+
+	/// Join 버튼
+	UPROPERTY( meta = ( BindWidget ) )
+		UButton* m_JoinButton;
+
 public:
 	/// 메뉴 초기 설정을 합니다.
 	UFUNCTION( BlueprintCallable )
-		void MenuSetup( int32 numberOfPublicConnections = 4, FString typeOfMatch = FString( TEXT( "FreeForAll" ) ) );
+	void MenuSetup( int32 numberOfPublicConnections = 4, FString typeOfMatch = FString( TEXT( "FreeForAll" ) ) );
+
 
 protected:
 	/// 초기화를 진행합니다.
@@ -29,17 +56,13 @@ protected:
 	/// 다른 레벨로 이동할 경우 현재 Level World 를 파괴합니다.
 	virtual void NativeDestruct() override;
 
-private:
-	/// 바인딩되는 버튼의 이름은 블루프린트에 정의된 이름과 동일해야 한다.
-	// UPROPERTY( meta = ( BindWidget ) ) 
 
-	/// Host 버튼
-	UPROPERTY( meta = ( BindWidget ) )
-	UButton* m_HostButton;
+/// Callbacks for the custom delegates on th MultiplayerSessionsSubsystem
+protected:
+	/// 세션이 생성되었을때 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+	UFUNCTION()
+	void OnCreateSession( bool bWasSuccessful );
 
-	/// Join 버튼
-	UPROPERTY( meta = ( BindWidget ) )
-	UButton* m_JoinButton;
 
 private:
 	/// Host 버튼을 클릭합니다.
@@ -52,15 +75,4 @@ private:
 
 	/// 메뉴 키조작을 합니다.
 	void MenuTearDown();
-
-private:
-	/// The subsystem designed to handl all online session functionality
-	UMultiPlayerSessionsSubsystem* m_MultiPlayerSessionSubsystem;
-
-	/// 연결가능한 Connection 수
-	int32 m_NumPublicConnections{ 4 };
-	
-	/// MatchType 정의
-	FString m_MatchType{ TEXT( "FreeForAll" ) };
-
 };
