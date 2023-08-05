@@ -58,6 +58,9 @@ private:
 	/// 온라인 세션 인터페이스
 	IOnlineSessionPtr m_SessionInterface;
 
+	/// 마지막 세션 세팅 정의
+	TSharedPtr< FOnlineSessionSettings > m_lastSessionSettings;
+
 /// To add to the Online Session Interface delegate list.
 /// We`ll bind our MultiPlayerSessionsSubsystem internal callbacks to these.
 private:

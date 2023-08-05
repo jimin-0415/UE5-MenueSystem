@@ -3,6 +3,8 @@
 
 #include "MultiPlayerSessionsSubsystem.h"
 #include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
+
 
 ////////////////////////////////////////////////////////////////////////////
 /// 생성자
@@ -27,6 +29,42 @@ UMultiPlayerSessionsSubsystem::UMultiPlayerSessionsSubsystem()
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, FString matchType )
 {
+	if ( !m_SessionInterface.IsValid() )
+		return;
+
+	// 이미 세션이 존재할 경우 삭제 후 다시 설정.
+	auto existingSession = m_SessionInterface->GetNamedSession( NAME_GameSession );
+	if ( nullptr != existingSession )
+		m_SessionInterface->DestroySession( NAME_GameSession );
+
+	// Store the delegate in a FDelegateHandle so We can later remove it for the delegate list
+	m_CreateSessionCompleteDelegateHandle = 
+		m_SessionInterface->AddOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegate );
+
+	m_lastSessionSettings = MakeShareable( new FOnlineSessionSettings() );
+	
+	// 테스트 용도일경우  SubSystemName == NuLL, 
+	// 테스트 아닐경우 Ex SubSystemName == Steam - ex
+	m_lastSessionSettings->bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
+	// Connection Count
+	m_lastSessionSettings->NumPublicConnections = numPublicConnections;
+
+	m_lastSessionSettings->bAllowJoinInProgress	 = true;
+	m_lastSessionSettings->bAllowJoinViaPresence = true;
+	m_lastSessionSettings->bShouldAdvertise		 = true;   //광고
+	m_lastSessionSettings->bUsesPresence		 = true;
+	m_lastSessionSettings->bUseLobbiesIfAvailable= true;
+
+	m_lastSessionSettings->Set( FName( "MatchType" ), matchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing );
+
+	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
+	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+
+	// 세션 생성
+	if ( !m_SessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *m_lastSessionSettings ) )
+	{
+		m_SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegateHandle );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////

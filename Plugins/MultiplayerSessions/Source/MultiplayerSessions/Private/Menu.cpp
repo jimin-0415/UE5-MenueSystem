@@ -9,8 +9,11 @@
 ////////////////////////////////////////////////////////////////////////////
 /// 메뉴 초기 설정을 합니다.
 ////////////////////////////////////////////////////////////////////////////
-void UMenu::MenuSetup()
+void UMenu::MenuSetup( int32 numberOfPublicConnections, FString typeOfMatch )
 {
+	m_NumPublicConnections = numberOfPublicConnections;
+	m_MatchType = typeOfMatch;
+
 	AddToViewport();
 	SetVisibility( ESlateVisibility::Visible );
 	bIsFocusable = true;
@@ -61,6 +64,13 @@ bool UMenu::Initialize()
 	return true;
 }
 
+void UMenu::NativeDestruct()
+{
+	MenuTearDown();
+
+	Super::NativeDestruct();
+}
+
 ////////////////////////////////////////////////////////////////////////////
 /// Host 버튼을 클릭합니다.
 ////////////////////////////////////////////////////////////////////////////
@@ -78,7 +88,12 @@ void UMenu::HostButtonClicked()
 	if ( m_MultiPlayerSessionSubsystem )
 	{
 		/// TODO. 일단 들어오는지 검사하기 위해서 임시로 적용.
-		m_MultiPlayerSessionSubsystem->CreateSession( 4, FString( "FreForAll" ) );
+		m_MultiPlayerSessionSubsystem->CreateSession( m_NumPublicConnections, m_MatchType );
+		UWorld* world = GetWorld();
+		if ( world )
+		{
+			world->ServerTravel( "/Game/ThirdPerson/Maps/Lobby?listen" );
+		}
 	}
 }
 
@@ -94,5 +109,24 @@ void UMenu::JoinButtonClicked()
 			15.f,
 			FColor::Yellow,
 			FString( TEXT( "Join Button Clicked" ) ) );
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 메뉴 키조작을 합니다.
+////////////////////////////////////////////////////////////////////////////
+void UMenu::MenuTearDown()
+{
+	RemoveFromParent();
+	UWorld* world = GetWorld();
+	if ( world )
+	{
+		APlayerController* playerController = world->GetFirstPlayerController();
+		if ( playerController )
+		{
+			FInputModeGameOnly inputModeData;
+			playerController->SetInputMode( inputModeData );
+			playerController->SetShowMouseCursor( false );
+		}
 	}
 }
