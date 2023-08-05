@@ -54,6 +54,7 @@ void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, F
 	m_LastSessionSettings->bShouldAdvertise		 = true;   //광고
 	m_LastSessionSettings->bUsesPresence		 = true;
 	m_LastSessionSettings->bUseLobbiesIfAvailable= true;
+	m_LastSessionSettings->BuildUniqueId		 = 1;		// 유니크 아이디 설정
 
 	m_LastSessionSettings->Set( FName( "MatchType" ), matchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing );
 
