@@ -31,8 +31,10 @@ private:
 	IOnlineSessionPtr m_SessionInterface;
 
 	/// 마지막 세션 세팅 정의
-	TSharedPtr< FOnlineSessionSettings > m_lastSessionSettings;
+	TSharedPtr< FOnlineSessionSettings > m_LastSessionSettings;
 
+	/// 마지막 세션 찾기
+	TSharedPtr< FOnlineSessionSearch > m_LastSessionSearch;
 
 /// To add to the Online Session Interface delegate list.
 /// We`ll bind our MultiPlayerSessionsSubsystem internal callbacks to these.
@@ -112,19 +114,19 @@ public:
 /// Getter and Setter
 public:
 	/// 멀티플레이어 세션 생성 완료 대리자를 반환한다.
-	FMultiplayerOnCreateSessionComplete GetMultiplayerOnCreateSessionComplete();
+	FMultiplayerOnCreateSessionComplete& GetMultiplayerOnCreateSessionComplete();
 
 	/// 멀티플레이어 세션 검색 완료 대리자를 반환한다.
-	FMultiplayerOnFindSessionsComplete GetMultiplayerOnFindSessionsComplete();
+	FMultiplayerOnFindSessionsComplete& GetMultiplayerOnFindSessionsComplete();
 
 	/// 멀티플레이어 세션 참가 완료 대리자를 반환한다.
-	FMultiplayerOnJoinSessionComplete GetMultiplayerOnJoinSessionComplete();
+	FMultiplayerOnJoinSessionComplete& GetMultiplayerOnJoinSessionComplete();
 
 	// 멀티플레이어 세션 파괴 완료 대리자를 반환한다.
-	FMultiplayerOnDestroySessionComplete GetMultiplayerOnDestroySessionComplete();
+	FMultiplayerOnDestroySessionComplete& GetMultiplayerOnDestroySessionComplete();
 
 	/// 멀티플레이어 세션 시작 완료 대리자를 반환한다.
-	FMultiplayerOnStartSessionComplete GetMultiplayerOnStartSessionComplete();
+	FMultiplayerOnStartSessionComplete& GetMultiplayerOnStartSessionComplete();
 
 
 /// Internal callbacks for the delegates we'll add to the OnlineSession Interface delegate list.

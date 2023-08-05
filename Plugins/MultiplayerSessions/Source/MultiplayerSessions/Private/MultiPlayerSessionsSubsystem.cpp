@@ -41,27 +41,27 @@ void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, F
 	m_CreateSessionCompleteDelegateHandle = 
 		m_SessionInterface->AddOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegate );
 
-	m_lastSessionSettings = MakeShareable( new FOnlineSessionSettings() );
+	m_LastSessionSettings = MakeShareable( new FOnlineSessionSettings() );
 	
 	// 테스트 용도일경우  SubSystemName == NuLL, 
 	// 테스트 아닐경우 Ex SubSystemName == Steam - ex
-	m_lastSessionSettings->bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
+	m_LastSessionSettings->bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
 	// Connection Count
-	m_lastSessionSettings->NumPublicConnections = numPublicConnections;
+	m_LastSessionSettings->NumPublicConnections = numPublicConnections;
 
-	m_lastSessionSettings->bAllowJoinInProgress	 = true;
-	m_lastSessionSettings->bAllowJoinViaPresence = true;
-	m_lastSessionSettings->bShouldAdvertise		 = true;   //광고
-	m_lastSessionSettings->bUsesPresence		 = true;
-	m_lastSessionSettings->bUseLobbiesIfAvailable= true;
+	m_LastSessionSettings->bAllowJoinInProgress	 = true;
+	m_LastSessionSettings->bAllowJoinViaPresence = true;
+	m_LastSessionSettings->bShouldAdvertise		 = true;   //광고
+	m_LastSessionSettings->bUsesPresence		 = true;
+	m_LastSessionSettings->bUseLobbiesIfAvailable= true;
 
-	m_lastSessionSettings->Set( FName( "MatchType" ), matchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing );
+	m_LastSessionSettings->Set( FName( "MatchType" ), matchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing );
 
 	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
 	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 
 	// 세션 생성
-	if ( !m_SessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *m_lastSessionSettings ) )
+	if ( !m_SessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *m_LastSessionSettings ) )
 	{
 		// 세션 생성이 실패할 경우.
 		m_SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegateHandle );
@@ -76,6 +76,29 @@ void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, F
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::FindSessions( int32 maxSearchResults )
 {
+	if ( !m_SessionInterface.IsValid() )
+		return;
+
+	m_FindSessionCompleteDelegateHandle 
+		= m_SessionInterface->AddOnFindSessionsCompleteDelegate_Handle( m_FindSessionCompleteDelegate );
+
+	m_LastSessionSearch = MakeShareable( new FOnlineSessionSearch() );
+	m_LastSessionSearch->MaxSearchResults = maxSearchResults;
+	m_LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
+	m_LastSessionSearch->QuerySettings.Set( SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals ); // 세션 검색 쿼리 세팅 
+
+	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
+	//Each player that is active on the current client/listen server has a LocalPlayer.
+	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	
+	// 세션 찾기
+	if ( !m_SessionInterface->FindSessions( *localPlayer->GetPreferredUniqueNetId(), m_LastSessionSearch.ToSharedRef() ) )
+	{
+		m_SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle( m_FindSessionCompleteDelegateHandle );
+		
+		//BroadCast Delegate
+		m_MultiplayerOnFindSessionsComplete.Broadcast( TArray<FOnlineSessionSearchResult>(), false );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -83,6 +106,25 @@ void UMultiPlayerSessionsSubsystem::FindSessions( int32 maxSearchResults )
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::JoinSession( const FOnlineSessionSearchResult& sessionResult )
 {
+	if ( !m_SessionInterface.IsValid() )
+	{
+		m_MultiplayerOnJoinSessionComplete.Broadcast( EOnJoinSessionCompleteResult::UnknownError );
+		return;
+	}
+	
+	m_JoinSessionCompleteDelegateHandle 
+		= m_SessionInterface->AddOnJoinSessionCompleteDelegate_Handle( m_JoinSessionCompleteDelegate );
+
+	// 로컬 플레이어 정보
+	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	
+	// 세션 참가
+	if ( !m_SessionInterface->JoinSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, sessionResult ) )
+	{
+		m_SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle( m_JoinSessionCompleteDelegateHandle );
+
+		m_MultiplayerOnJoinSessionComplete.Broadcast( EOnJoinSessionCompleteResult::UnknownError );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -102,7 +144,7 @@ void UMultiPlayerSessionsSubsystem::StartSession()
 ////////////////////////////////////////////////////////////////////////////
 /// 멀티플레이어 세션 생성 완료 대리자를 반환한다.
 ////////////////////////////////////////////////////////////////////////////
-FMultiplayerOnCreateSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnCreateSessionComplete()
+FMultiplayerOnCreateSessionComplete& UMultiPlayerSessionsSubsystem::GetMultiplayerOnCreateSessionComplete()
 {
 	return m_MultiplayerOnCreateSessionComplete;
 }
@@ -110,7 +152,7 @@ FMultiplayerOnCreateSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplaye
 ////////////////////////////////////////////////////////////////////////////
 /// 멀티플레이어 세션 검색 완료 대리자를 반환한다.
 ////////////////////////////////////////////////////////////////////////////
-FMultiplayerOnFindSessionsComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnFindSessionsComplete()
+FMultiplayerOnFindSessionsComplete& UMultiPlayerSessionsSubsystem::GetMultiplayerOnFindSessionsComplete()
 {
 	return m_MultiplayerOnFindSessionsComplete;
 }
@@ -118,7 +160,7 @@ FMultiplayerOnFindSessionsComplete UMultiPlayerSessionsSubsystem::GetMultiplayer
 ////////////////////////////////////////////////////////////////////////////
 /// 멀티플레이어 세션 참가 완료 대리자를 반환한다.
 ////////////////////////////////////////////////////////////////////////////
-FMultiplayerOnJoinSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnJoinSessionComplete()
+FMultiplayerOnJoinSessionComplete& UMultiPlayerSessionsSubsystem::GetMultiplayerOnJoinSessionComplete()
 {
 	return m_MultiplayerOnJoinSessionComplete;
 }
@@ -126,7 +168,7 @@ FMultiplayerOnJoinSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerO
 ////////////////////////////////////////////////////////////////////////////
 /// 멀티플레이어 세션 파괴 완료 대리자를 반환한다.
 ////////////////////////////////////////////////////////////////////////////
-FMultiplayerOnDestroySessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnDestroySessionComplete()
+FMultiplayerOnDestroySessionComplete& UMultiPlayerSessionsSubsystem::GetMultiplayerOnDestroySessionComplete()
 {
 	return m_MultiplayerOnDestroySessionComplete;
 }
@@ -134,7 +176,7 @@ FMultiplayerOnDestroySessionComplete UMultiPlayerSessionsSubsystem::GetMultiplay
 ////////////////////////////////////////////////////////////////////////////
 /// 멀티플레이어 세션 시작 완료 대리자를 반환한다.
 ////////////////////////////////////////////////////////////////////////////
-FMultiplayerOnStartSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnStartSessionComplete()
+FMultiplayerOnStartSessionComplete& UMultiPlayerSessionsSubsystem::GetMultiplayerOnStartSessionComplete()
 {
 	return m_MultiplayerOnStartSessionComplete;
 }
@@ -158,6 +200,20 @@ void UMultiPlayerSessionsSubsystem::OnCreateSessionComplete( FName sessionName, 
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::OnFindSessionsComplete( bool bwasSuccessful )
 {
+	if ( m_SessionInterface )
+	{
+		m_SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle( m_FindSessionCompleteDelegateHandle );
+	}
+
+	if ( m_LastSessionSearch->SearchResults.Num() <= 0 )
+	{
+		// 찾은 세션 정보가 없을경우 실패 처리.
+		m_MultiplayerOnFindSessionsComplete.Broadcast( TArray<FOnlineSessionSearchResult>(), false );
+		return;
+	}
+
+	// Broadcast our own custom delegate
+	m_MultiplayerOnFindSessionsComplete.Broadcast( m_LastSessionSearch->SearchResults, bwasSuccessful );
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -165,6 +221,12 @@ void UMultiPlayerSessionsSubsystem::OnFindSessionsComplete( bool bwasSuccessful 
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::OnJoinSessionComplete( FName sessionName, EOnJoinSessionCompleteResult::Type result )
 {
+	if ( m_SessionInterface )
+	{
+		m_SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle( m_JoinSessionCompleteDelegateHandle );
+	}
+
+	m_MultiplayerOnJoinSessionComplete.Broadcast( result );
 }
 
 ////////////////////////////////////////////////////////////////////////////
