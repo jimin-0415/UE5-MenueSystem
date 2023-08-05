@@ -3,6 +3,7 @@
 
 #include "Menu.h"
 #include "MultiPlayerSessionsSubsystem.h"
+#include "OnlineSessionSettings.h"
 #include "Components/Button.h"
 
 
@@ -42,10 +43,14 @@ void UMenu::MenuSetup( int32 numberOfPublicConnections, FString typeOfMatch )
 
 	if ( m_MultiPlayerSessionSubsystem )
 	{
-		/// DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam 에 바인딩 되는 함수는 UFUNC() 매크로 선언이 필요하다.
-		m_MultiPlayerSessionSubsystem->MultiplayerOnCreateSessionComplete.AddDynamic( this, &ThisClass::OnCreateSession );
+		// DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam 에 바인딩 되는 함수는 UFUNC() 매크로 선언이 필요하다.
+		// 대리자 클래스에 함수를 매핑합니다.
+		m_MultiPlayerSessionSubsystem->GetMultiplayerOnCreateSessionComplete().AddDynamic( this, &ThisClass::OnCreateSession );
+		m_MultiPlayerSessionSubsystem->GetMultiplayerOnFindSessionsComplete().AddUObject( this, &ThisClass::OnFindSessions );
+		m_MultiPlayerSessionSubsystem->GetMultiplayerOnJoinSessionComplete().AddUObject(this, &ThisClass::OnJoinSession);
+		m_MultiPlayerSessionSubsystem->GetMultiplayerOnDestroySessionComplete().AddDynamic( this, &ThisClass::OnDestroySession );
+		m_MultiPlayerSessionSubsystem->GetMultiplayerOnStartSessionComplete().AddDynamic( this, &ThisClass::OnStartSession );
 	}
-
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -66,10 +71,12 @@ bool UMenu::Initialize()
 		m_JoinButton->OnClicked.AddDynamic( this, &ThisClass::JoinButtonClicked );
 	}
 
-
 	return true;
 }
 
+////////////////////////////////////////////////////////////////////////////
+/// 다른 레벨로 이동할 경우 현재 Level World 를 파괴합니다.
+////////////////////////////////////////////////////////////////////////////
 void UMenu::NativeDestruct()
 {
 	MenuTearDown();
@@ -78,7 +85,7 @@ void UMenu::NativeDestruct()
 }
 
 ////////////////////////////////////////////////////////////////////////////
-/// 세션이 생성되었을 때 처리합니다.
+/// 세션이 생성 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
 ////////////////////////////////////////////////////////////////////////////
 void UMenu::OnCreateSession( bool bWasSuccessful )
 {
@@ -111,6 +118,34 @@ void UMenu::OnCreateSession( bool bWasSuccessful )
 				FString( TEXT( "Failed to Create Session" ) ) );
 		}
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 세션 찾기 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+////////////////////////////////////////////////////////////////////////////
+void UMenu::OnFindSessions( const TArray<FOnlineSessionSearchResult>& sessionResults, bool bWasSuccessful )
+{
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 세션 합류 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+////////////////////////////////////////////////////////////////////////////
+void UMenu::OnJoinSession( EOnJoinSessionCompleteResult::Type result )
+{
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 세션 파괴 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+////////////////////////////////////////////////////////////////////////////
+void UMenu::OnDestroySession( bool bWasSuccessful )
+{
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 세선 시작 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+////////////////////////////////////////////////////////////////////////////
+void UMenu::OnStartSession( bool bWasSuccessful )
+{
 }
 
 ////////////////////////////////////////////////////////////////////////////

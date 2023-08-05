@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "Menu.generated.h"
 
 
@@ -59,9 +60,23 @@ protected:
 
 /// Callbacks for the custom delegates on th MultiplayerSessionsSubsystem
 protected:
-	/// 세션이 생성되었을때 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+	/// 세션이 생성 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
 	UFUNCTION()
 	void OnCreateSession( bool bWasSuccessful );
+
+	/// 세션 찾기 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+	void OnFindSessions( const TArray<FOnlineSessionSearchResult>& sessionResults, bool bWasSuccessful );
+	
+	/// 세션 합류 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+	void OnJoinSession( EOnJoinSessionCompleteResult::Type result );
+	
+	/// 세션 파괴 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+	UFUNCTION()
+	void OnDestroySession( bool bWasSuccessful );
+	
+	/// 세선 시작 결과를 처리한다. [ Delegator 로부터 전달받아 호출된 함수 ]
+	UFUNCTION()
+	void OnStartSession( bool bWasSuccessful );
 
 
 private:

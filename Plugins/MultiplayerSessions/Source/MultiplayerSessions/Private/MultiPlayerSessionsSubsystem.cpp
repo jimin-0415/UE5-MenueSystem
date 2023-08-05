@@ -67,7 +67,7 @@ void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, F
 		m_SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle( m_CreateSessionCompleteDelegateHandle );
 
 		// Broadcast our own custom delegate
-		MultiplayerOnCreateSessionComplete.Broadcast( false );
+		m_MultiplayerOnCreateSessionComplete.Broadcast( false );
 	}
 }
 
@@ -100,6 +100,46 @@ void UMultiPlayerSessionsSubsystem::StartSession()
 }
 
 ////////////////////////////////////////////////////////////////////////////
+/// 멀티플레이어 세션 생성 완료 대리자를 반환한다.
+////////////////////////////////////////////////////////////////////////////
+FMultiplayerOnCreateSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnCreateSessionComplete()
+{
+	return m_MultiplayerOnCreateSessionComplete;
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 멀티플레이어 세션 검색 완료 대리자를 반환한다.
+////////////////////////////////////////////////////////////////////////////
+FMultiplayerOnFindSessionsComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnFindSessionsComplete()
+{
+	return m_MultiplayerOnFindSessionsComplete;
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 멀티플레이어 세션 참가 완료 대리자를 반환한다.
+////////////////////////////////////////////////////////////////////////////
+FMultiplayerOnJoinSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnJoinSessionComplete()
+{
+	return m_MultiplayerOnJoinSessionComplete;
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 멀티플레이어 세션 파괴 완료 대리자를 반환한다.
+////////////////////////////////////////////////////////////////////////////
+FMultiplayerOnDestroySessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnDestroySessionComplete()
+{
+	return m_MultiplayerOnDestroySessionComplete;
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// 멀티플레이어 세션 시작 완료 대리자를 반환한다.
+////////////////////////////////////////////////////////////////////////////
+FMultiplayerOnStartSessionComplete UMultiPlayerSessionsSubsystem::GetMultiplayerOnStartSessionComplete()
+{
+	return m_MultiplayerOnStartSessionComplete;
+}
+
+////////////////////////////////////////////////////////////////////////////
 /// 세션 생성이 완료되었을 때 처리한다.
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::OnCreateSessionComplete( FName sessionName, bool bWasSuccessful )
@@ -110,7 +150,7 @@ void UMultiPlayerSessionsSubsystem::OnCreateSessionComplete( FName sessionName, 
 	}
 
 	// Broadcast our own custom delegate
-	MultiplayerOnCreateSessionComplete.Broadcast( bWasSuccessful );
+	m_MultiplayerOnCreateSessionComplete.Broadcast( bWasSuccessful );
 }
 
 ////////////////////////////////////////////////////////////////////////////

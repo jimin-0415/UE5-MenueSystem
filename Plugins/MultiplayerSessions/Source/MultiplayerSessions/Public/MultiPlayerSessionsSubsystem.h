@@ -12,6 +12,10 @@
 /// Delcaring our own custom delegates for the Menu class to bind callbacks to
 ////////////////////////////////////////////////////////////////////////////
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FMultiplayerOnCreateSessionComplete, bool, bWasSuccessful );
+DECLARE_MULTICAST_DELEGATE_TwoParams( FMultiplayerOnFindSessionsComplete, const TArray<FOnlineSessionSearchResult>& sessionResult, bool bWasSuccessful );
+DECLARE_MULTICAST_DELEGATE_OneParam( FMultiplayerOnJoinSessionComplete, EOnJoinSessionCompleteResult::Type result );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FMultiplayerOnDestroySessionComplete, bool, bWasSuccessful );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FMultiplayerOnStartSessionComplete, bool, bWasSuccessful );
 
 
 /**
@@ -22,9 +26,70 @@ class MULTIPLAYERSESSIONS_API UMultiPlayerSessionsSubsystem : public UGameInstan
 {
 	GENERATED_BODY()
 	
+private:
+	/// 온라인 세션 인터페이스
+	IOnlineSessionPtr m_SessionInterface;
+
+	/// 마지막 세션 세팅 정의
+	TSharedPtr< FOnlineSessionSettings > m_lastSessionSettings;
+
+
+/// To add to the Online Session Interface delegate list.
+/// We`ll bind our MultiPlayerSessionsSubsystem internal callbacks to these.
+private:
+	/// 세션 생성 완료 대리자
+	FOnCreateSessionCompleteDelegate m_CreateSessionCompleteDelegate;
+
+	/// 세션 생성 완료 대리자 핸들
+	FDelegateHandle m_CreateSessionCompleteDelegateHandle;
+
+	/// 세션 검색 완료 대리자
+	FOnFindSessionsCompleteDelegate m_FindSessionCompleteDelegate;
+
+	//// 세션 검색 완료 대리자 핸들
+	FDelegateHandle m_FindSessionCompleteDelegateHandle;
+
+	/// 세션 참가 완료 대리자
+	FOnJoinSessionCompleteDelegate m_JoinSessionCompleteDelegate;
+
+	/// 세션 참가 완료 대리자 핸들
+	FDelegateHandle m_JoinSessionCompleteDelegateHandle;
+
+	/// 세션 파괴 완료 대리자
+	FOnDestroySessionCompleteDelegate m_DestroySessionCompleteDelegate;
+
+	/// 세션 파괴 완료 대리자 핸들
+	FDelegateHandle m_DestroySessionCompleteDelegateHandle;
+
+	/// 세션 시작 완료 대리자
+	FOnStartSessionCompleteDelegate m_StartSessionCompleteDelegate;
+
+	/// 세션 시작 완료 대리자 핸들
+	FDelegateHandle m_StartSessionCompleteDelegateHandle;
+
+
+/// Own custom delegates for the Menu class to bind callbacks to
+public:
+	/// 멀티플레이어 세션 생성 완료 대리자
+	FMultiplayerOnCreateSessionComplete m_MultiplayerOnCreateSessionComplete;
+
+	/// 멀티플레이어 세션 검색 완료 대리자
+	FMultiplayerOnFindSessionsComplete m_MultiplayerOnFindSessionsComplete;
+
+	/// 멀티플레이어 세션 참가 완료 대리자
+	FMultiplayerOnJoinSessionComplete m_MultiplayerOnJoinSessionComplete;
+
+	/// 멀티플레이어 세션 파괴 완료 대리자
+	FMultiplayerOnDestroySessionComplete m_MultiplayerOnDestroySessionComplete;
+
+	/// 멀티플레이어 세션 시작 완료 대리자
+	FMultiplayerOnStartSessionComplete m_MultiplayerOnStartSessionComplete;
+
+
 public:
 	/// 생성자
 	UMultiPlayerSessionsSubsystem();
+
 
 /// To Handle session functionality. The Menu class will call these
 public:
@@ -43,9 +108,23 @@ public:
 	/// 세션을 시작합니다.
 	void StartSession();
 
-/// Own custom delegates for the Menu class to bind callbacks to
+
+/// Getter and Setter
 public:
-	FMultiplayerOnCreateSessionComplete MultiplayerOnCreateSessionComplete;
+	/// 멀티플레이어 세션 생성 완료 대리자를 반환한다.
+	FMultiplayerOnCreateSessionComplete GetMultiplayerOnCreateSessionComplete();
+
+	/// 멀티플레이어 세션 검색 완료 대리자를 반환한다.
+	FMultiplayerOnFindSessionsComplete GetMultiplayerOnFindSessionsComplete();
+
+	/// 멀티플레이어 세션 참가 완료 대리자를 반환한다.
+	FMultiplayerOnJoinSessionComplete GetMultiplayerOnJoinSessionComplete();
+
+	// 멀티플레이어 세션 파괴 완료 대리자를 반환한다.
+	FMultiplayerOnDestroySessionComplete GetMultiplayerOnDestroySessionComplete();
+
+	/// 멀티플레이어 세션 시작 완료 대리자를 반환한다.
+	FMultiplayerOnStartSessionComplete GetMultiplayerOnStartSessionComplete();
 
 
 /// Internal callbacks for the delegates we'll add to the OnlineSession Interface delegate list.
@@ -58,51 +137,11 @@ protected:
 	void OnFindSessionsComplete(bool bwasSuccessful);
 
 	/// 세션 합류가 완료되었을 때 처리한다.
-	void OnJoinSessionComplete(FName sessionName, EOnJoinSessionCompleteResult::Type result);
+	void OnJoinSessionComplete( FName sessionName, EOnJoinSessionCompleteResult::Type result );
 
 	/// 세션 파괴가 완료되었을 때 처리한다.
 	void OnDestroySessionComplete(FName sessionName, bool bwasSuccessful);
 
 	/// 세션 시작이 완료되었을 때 처리한다.
 	void OnStartSessionComplete(FName sessionName, bool bwasSuccessful);
-
-private:
-	/// 온라인 세션 인터페이스
-	IOnlineSessionPtr m_SessionInterface;
-
-	/// 마지막 세션 세팅 정의
-	TSharedPtr< FOnlineSessionSettings > m_lastSessionSettings;
-
-/// To add to the Online Session Interface delegate list.
-/// We`ll bind our MultiPlayerSessionsSubsystem internal callbacks to these.
-private:
-	/// 세션 생성 완료 대리자
-	FOnCreateSessionCompleteDelegate m_CreateSessionCompleteDelegate;
-	
-	/// 세션 생성 완료 대리자 핸들
-	FDelegateHandle m_CreateSessionCompleteDelegateHandle;
-
-	/// 세션 검색 완료 대리자
-	FOnFindSessionsCompleteDelegate m_FindSessionCompleteDelegate;
-	
-	//// 세션 검색 완료 대리자 핸들
-	FDelegateHandle m_FindSessionCompleteDelegateHandle;
-
-	/// 세션 참가 완료 대리자
-	FOnJoinSessionCompleteDelegate m_JoinSessionCompleteDelegate;
-	
-	/// 세션 참가 완료 대리자 핸들
-	FDelegateHandle m_JoinSessionCompleteDelegateHandle;
-
-	/// 세션 파괴 완료 대리자
-	FOnDestroySessionCompleteDelegate m_DestroySessionCompleteDelegate;
-	
-	/// 세션 파괴 완료 대리자 핸들
-	FDelegateHandle m_DestroySessionCompleteDelegateHandle;
-
-	/// 세션 시작 완료 대리자
-	FOnStartSessionCompleteDelegate m_StartSessionCompleteDelegate;
-
-	/// 세션 시작 완료 대리자 핸들
-	FDelegateHandle m_StartSessionCompleteDelegateHandle;
 };
