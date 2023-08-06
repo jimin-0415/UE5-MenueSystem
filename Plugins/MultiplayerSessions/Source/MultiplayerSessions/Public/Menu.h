@@ -31,6 +31,10 @@ private:
 	/// MatchType 정의
 	FString m_MatchType{ TEXT( "FreeForAll" ) };
 
+	/// 로비 패스 정의
+	FString m_PathToLobby{ TEXT( "" ) };
+
+
 /// UI Object
 private:
 	/// 바인딩되는 버튼의 이름은 블루프린트에 정의된 이름과 동일해야 한다.
@@ -44,10 +48,15 @@ private:
 	UPROPERTY( meta = ( BindWidget ) )
 		UButton* m_JoinButton;
 
+
 public:
 	/// 메뉴 초기 설정을 합니다.
 	UFUNCTION( BlueprintCallable )
-	void MenuSetup( int32 numberOfPublicConnections = 4, FString typeOfMatch = FString( TEXT( "FreeForAll" ) ) );
+		void MenuSetup(
+		int32 numberOfPublicConnections = 4,
+		FString typeOfMatch = FString( TEXT( "FreeForAll" ) ),
+		FString lobbyPath = FString( TEXT( "/Game/ThirdPerson/Maps/Lobby" ) )
+		);
 
 
 protected:

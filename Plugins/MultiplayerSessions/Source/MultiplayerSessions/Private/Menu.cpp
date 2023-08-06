@@ -11,8 +11,9 @@
 ////////////////////////////////////////////////////////////////////////////
 /// 메뉴 초기 설정을 합니다.
 ////////////////////////////////////////////////////////////////////////////
-void UMenu::MenuSetup( int32 numberOfPublicConnections, FString typeOfMatch )
+void UMenu::MenuSetup( int32 numberOfPublicConnections, FString typeOfMatch, FString lobbyPath )
 {
+	m_PathToLobby = FString::Printf( TEXT( "%s?listen" ), *lobbyPath );
 	m_NumPublicConnections = numberOfPublicConnections;
 	m_MatchType = typeOfMatch;
 
@@ -96,7 +97,7 @@ void UMenu::OnCreateSession( bool bWasSuccessful )
 		UWorld* world = GetWorld();
 		if ( world )
 		{
-			world->ServerTravel( "/Game/ThirdPerson/Maps/Lobby?listen" );
+			world->ServerTravel( m_PathToLobby );
 		}
 
 		if ( GEngine )

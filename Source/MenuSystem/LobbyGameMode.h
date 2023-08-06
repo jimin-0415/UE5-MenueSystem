@@ -16,8 +16,8 @@ class MENUSYSTEM_API ALobbyGameMode : public AGameModeBase
 
 public:
 	/// 플레이어가 로그인 합니다.
-	virtual void PostLogin( APlayerController* newPlayer ) override;
+	virtual void PostLogin( APlayerController* NewPlayer ) override;
 
 	/// 플레이어가 로그아웃 합니다.
-	virtual void Logout( AController* exiting ) override;
+	virtual void Logout( AController* Exiting ) override;
 };

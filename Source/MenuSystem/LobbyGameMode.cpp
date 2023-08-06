@@ -9,9 +9,9 @@
 //////////////////////////////////////////////////////////////////////////
 // 플레이어가 로그인 합니다.
 //////////////////////////////////////////////////////////////////////////
-void ALobbyGameMode::PostLogin( APlayerController* newPlayer )
+void ALobbyGameMode::PostLogin( APlayerController* NewPlayer )
 {
-	Super::PostLogin( newPlayer );
+	Super::PostLogin( NewPlayer );
 
 	if ( GameState )
 	{
@@ -25,12 +25,12 @@ void ALobbyGameMode::PostLogin( APlayerController* newPlayer )
 				FString::Printf( TEXT( "Player in game: %d" ), numberOfPlayers ) );
 		}
 
-		APlayerState* playerState = newPlayer->GetPlayerState< APlayerState >();
+		APlayerState* playerState = NewPlayer->GetPlayerState< APlayerState >();
 		if ( playerState )
 		{
 			FString playerName = playerState->GetPlayerName();
 			GEngine->AddOnScreenDebugMessage(
-				1,
+				-1,
 				60.f,
 				FColor::Yellow,
 				FString::Printf( TEXT( "%s has joined the game" ), *playerName ) );
@@ -41,11 +41,11 @@ void ALobbyGameMode::PostLogin( APlayerController* newPlayer )
 //////////////////////////////////////////////////////////////////////////
 // 플레이어가 로그아웃 합니다.
 //////////////////////////////////////////////////////////////////////////
-void ALobbyGameMode::Logout( AController* exiting )
+void ALobbyGameMode::Logout( AController* Exiting )
 {
-	Super::Logout( exiting );
+	Super::Logout( Exiting );
 
-	APlayerState* playerState = exiting->GetPlayerState< APlayerState >();
+	APlayerState* playerState = Exiting->GetPlayerState< APlayerState >();
 	if ( playerState )
 	{
 		if ( GEngine )
@@ -53,7 +53,7 @@ void ALobbyGameMode::Logout( AController* exiting )
 			int32 numberOfPlayers = GameState.Get()->PlayerArray.Num();
 
 			GEngine->AddOnScreenDebugMessage(
-				1,
+				-1,
 				60.f,
 				FColor::Yellow,
 				FString::Printf( TEXT( "Player in game: %d" ), numberOfPlayers ) );
