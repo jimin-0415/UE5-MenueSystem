@@ -35,7 +35,16 @@ void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, F
 	// 이미 세션이 존재할 경우 삭제 후 다시 설정.
 	auto existingSession = m_SessionInterface->GetNamedSession( NAME_GameSession );
 	if ( nullptr != existingSession )
-		m_SessionInterface->DestroySession( NAME_GameSession );
+	{
+		m_IsCreateSessionOnDestroy = true;
+		m_LastNumPublicConnections = numPublicConnections;
+		m_LastMatchType = matchType;
+
+		// 세션 파괴 후 생성을 할경우 파괴 요청 시 서버와의 통신 딜레이 시간때문에, 이미 존재하는 세션이라. 문제가 발생함
+		// 세션 파괴 완료 후 세션 시작하도록 처리.
+		DestroySession();
+	}
+		
 
 	// Store the delegate in a FDelegateHandle so We can later remove it for the delegate list
 	m_CreateSessionCompleteDelegateHandle = 
@@ -61,7 +70,7 @@ void UMultiPlayerSessionsSubsystem::CreateSession( int32 numPublicConnections, F
 	// 월드로부터 로컬플레이어 정보를 가져온다. 각 로컬 플레이어는 고유의 Id값을 가진다.
 	const ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 
-	// 세션 생성
+	// 세션 생성 
 	if ( !m_SessionInterface->CreateSession( *localPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *m_LastSessionSettings ) )
 	{
 		// 세션 생성이 실패할 경우.
@@ -133,6 +142,20 @@ void UMultiPlayerSessionsSubsystem::JoinSession( const FOnlineSessionSearchResul
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::DestroySession()
 {
+	if ( !m_SessionInterface.IsValid() )
+	{
+		m_MultiplayerOnDestroySessionComplete.Broadcast( false );
+		return;
+	}
+
+	m_DestroySessionCompleteDelegateHandle =
+		m_SessionInterface->AddOnDestroySessionCompleteDelegate_Handle( m_DestroySessionCompleteDelegate );
+
+	if ( !m_SessionInterface->DestroySession( NAME_GameSession ) )
+	{
+		m_SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle( m_DestroySessionCompleteDelegateHandle );
+		m_MultiplayerOnDestroySessionComplete.Broadcast( false );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -235,6 +258,18 @@ void UMultiPlayerSessionsSubsystem::OnJoinSessionComplete( FName sessionName, EO
 ////////////////////////////////////////////////////////////////////////////
 void UMultiPlayerSessionsSubsystem::OnDestroySessionComplete( FName sessionName, bool bwasSuccessful )
 {
+	if ( m_SessionInterface )
+	{
+		m_SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle( m_DestroySessionCompleteDelegateHandle );
+	}
+
+	if ( bwasSuccessful && m_IsCreateSessionOnDestroy )
+	{
+		m_IsCreateSessionOnDestroy = false;
+		CreateSession( m_LastNumPublicConnections, m_LastMatchType );
+	}
+
+	m_MultiplayerOnDestroySessionComplete.Broadcast( bwasSuccessful );
 }
 
 ////////////////////////////////////////////////////////////////////////////

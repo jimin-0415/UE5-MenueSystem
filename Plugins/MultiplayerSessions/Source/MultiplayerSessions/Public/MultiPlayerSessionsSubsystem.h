@@ -69,6 +69,14 @@ private:
 	/// 세션 시작 완료 대리자 핸들
 	FDelegateHandle m_StartSessionCompleteDelegateHandle;
 
+	/// 세션 파괴 여부 정의
+	bool m_IsCreateSessionOnDestroy{ false };
+
+	/// 마지막 커넥션 요청 수
+	int32 m_LastNumPublicConnections;
+
+	/// 마지막 매치 타입
+	FString m_LastMatchType;
 
 /// Own custom delegates for the Menu class to bind callbacks to
 public:

@@ -119,6 +119,8 @@ void UMenu::OnCreateSession( bool bWasSuccessful )
 				FColor::Red,
 				FString( TEXT( "Failed to Create Session" ) ) );
 		}
+
+		m_HostButton->SetIsEnabled( true );
 	}
 }
 
@@ -141,12 +143,10 @@ void UMenu::OnFindSessions( const TArray<FOnlineSessionSearchResult>& sessionRes
 		}
 	}
 
-	if ( bWasSuccessful )
+	if ( !bWasSuccessful || sessionResults.Num() == 0 )
 	{
+		m_JoinButton->SetIsEnabled( true );
 
-	}
-	else
-	{
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
@@ -185,6 +185,11 @@ void UMenu::OnJoinSession( EOnJoinSessionCompleteResult::Type result )
 			
 		}
 	}
+
+	if ( result != EOnJoinSessionCompleteResult::Success )
+	{
+		m_JoinButton->SetIsEnabled( true );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -206,6 +211,9 @@ void UMenu::OnStartSession( bool bWasSuccessful )
 ////////////////////////////////////////////////////////////////////////////
 void UMenu::HostButtonClicked()
 {
+	// 클릭을 하면 버튼을 비활성화 한다.
+	m_HostButton->SetIsEnabled( false );
+
 	if ( m_MultiPlayerSessionSubsystem )
 	{
 		/// TODO. 일단 들어오는지 검사하기 위해서 임시로 적용.
@@ -227,6 +235,9 @@ void UMenu::HostButtonClicked()
 ////////////////////////////////////////////////////////////////////////////
 void UMenu::JoinButtonClicked()
 {
+	// 클릭을 하면 버튼을 활성화 한다.
+	m_JoinButton->SetIsEnabled( false );
+
 	if ( m_MultiPlayerSessionSubsystem )
 	{
 		m_MultiPlayerSessionSubsystem->FindSessions( 10000 );
